@@ -16,7 +16,7 @@
 % Aqui definimos as trilhas disponíveis e suas descrições.
 % ----------------------------------
 
-trilha(inteligencia_aritificial,
+trilha(inteligencia_artificial,
   'Modelagem e treinamento de modelos inteligentes (ML/IA), PNL e raciocínio automatizado.').
 
 trilha(ciencia_de_dados,
@@ -38,11 +38,11 @@ trilha(redes_e_infraestrutura,
 % ------------------------------------------------------------------------------------------
 
 % Inteligencia Artificial
-perfil(inteligencia_aritificial, matematica_estatistica, 5).
-perfil(inteligencia_aritificial, programacao, 4).
-perfil(inteligencia_aritificial, logica, 4).
-perfil(inteligencia_aritificial, machine_learning, 5).
-perfil(inteligencia_aritificial, pln, 3).
+perfil(inteligencia_artificial, matematica_estatistica, 5).
+perfil(inteligencia_artificial, programacao, 4).
+perfil(inteligencia_artificial, logica, 4).
+perfil(inteligencia_artificial, machine_learning, 5).
+perfil(inteligencia_artificial, pln, 3).
 
 % Ciencia de Dados
 perfil(ciencia_de_dados, matematica_estatistica, 5).
@@ -132,10 +132,10 @@ pergunta(19, 'Voce tem interesse em hardware e infraestrutura fisica?', hardware
 iniciar :-
     limpar_respostas,
     banner,
-    writeln('Responda as seguintes perguntas com sim ou nao.'),
+    writeln('Responda s (sim) ou n (nao).'),
     fazer_perguntas,
     calcular_pontuacoes(Pares),              % [trilha(Pontuacao, Justificativa)...]
-    ordernar_por_pontuacao(Pares, Ordenada),
+    ordenar_por_pontuacao(Pares, Ordenada),
     exibir_resultados(Ordenada).
 
 listar_trilhas :-
@@ -149,26 +149,26 @@ banner :-
     writeln('==============================================').
 
 fazer_perguntas :-
-    forall(pergunta(Id, Texto, _Car),
-           perguntar(Id, Texto, Res)),
-    (var(Res) -> true ; true). % evita warning; fluxo eh do forall
+    forall(pergunta(Id, Texto, _Caracteristica),
+           perguntar(Id, Texto, Resposta)),
+    (var(Resposta) -> true ; true). % evita warning; fluxo eh do forall
 
-perguntar(Id, Texto, ResFinal) :-
+perguntar(Id, Texto, RespostaFinal) :-
     format('(~d) ~w (s/n): ', [Id, Texto]),
-    ler_sn(Res),
-    assertz(resposta(Id, Res)),
-    ResFinal = Res.
+    ler_resposta(Resposta),
+    assertz(resposta(Id, Resposta)),
+    RespostaFinal = Resposta.
 
-ler_sn(Res) :-
-    read_line_to_string(user_input, raw(In)),
+ler_resposta(Resposta) :-
+    read_line_to_string(user_input, (In)),
     string_lower(In, Lower),
-    normaliza(Lower, ResNorm),
-    ( ResNorm = s ; ResNorm = n ),
+    normaliza(Lower, RespostaNorm),
+    ( RespostaNorm = s ; RespostaNorm = n ),
     !,
-    Res = ResNorm.
-ler_sn(Res) :-
+    Resposta = RespostaNorm.
+ler_resposta(Resposta) :-
     writeln('Entrada invalida. Digite "s" ou "n".'),
-    ler_sn(Res).
+    ler_resposta(Resposta).
 
 normaliza(Str, s) :- member(Str, ["s","sim","y","yes"]).
 normaliza(Str, n) :- member(Str, ["n","nao","não","no"]).
@@ -182,26 +182,29 @@ normaliza(Str, Str).
 % retorna lista de pares: [trilha(Nome, Pontuacao, JustificativaOrdenada) ...]
 calcular_pontuacoes(Resultado) :-
     findall(Nome, trilha(Nome, _), Trilhas),
-    findall(Pontos(member(Nome, Trilhas), pontuacao_trilha(Nome, Pontos)), Resultado).
+    findall(trilha(Nome, Total, JustificativaOrdenada),
+        ( member(Nome, Trilhas),
+          pontuacao_trilha(Nome, trilha(Nome, Total, JustificativaOrdenada))
+        ),
+        Resultado).
 
 pontuacao_trilha(Nome, trilha(Nome, Total, JustificativaOrdenada)) :-
-    % contribuições = [ (Caracteristica, Peso, IdPergunta) ... ] only for respostas 's'
+    % Contribuicoes = [ (Caracteristica, Peso, IdPergunta) ... ] somente para 's'
     findall((Caracteristica, Peso, Id),
         ( perfil(Nome, Caracteristica, Peso),
           pergunta(Id, _Texto, Caracteristica),
           resposta(Id, s)
-        ), contribuicoes),
-    soma_pesos(contribuicoes, Total),
-    ordena_contribuicoes(contribuicoes, JustOrd).
+        ),
+        Contribuicoes),
+    soma_pesos(Contribuicoes, Total),
+    ordena_contribuicoes(Contribuicoes, JustificativaOrdenada).
 
 soma_pesos(Contribuicoes, Total) :-
     findall(Peso, member((_Caracteristica, Peso, _Id), Contribuicoes), Pesos),
     sum_list(Pesos, Total).
 
-
 ordena_contribuicoes(Contribuicoes, Ordenadas) :-
-    sort(2, @>=, Contribuicoes, Ordenadas). % ordena por Peso desc.
-
+    sort(2, @>=, Contribuicoes, Ordenadas). % por Peso desc.
 % ------------------------------------------
 % Ordenacao e exibicao dos resultados
 % ------------------------------------------
@@ -212,11 +215,13 @@ ordenar_por_pontuacao(Pares, Ordenada) :-
 exibir_resultados([]) :-
     writeln('Nenhuma trilha recomendada com base nas suas respostas.').
   exibir_resultados(Pares) :-
-  writeln('\n=== Ranking de Compatibilidade ===')
+  writeln('\n=== Ranking de Compatibilidade ==='),
   % pega maior pontuacao para calcular porcentagem
   Pares = [trilha(_TotalMax, Max, _)|_],
     forall(member(trilha(Total, Ponto, Justificativa), Pares),
-        ( Percent is (Max =:= 0 -> 0 ; round(Ponto * 100 / Max)),
+        ( ( Max =:= 0 -> Percent = 0
+          ; Percent is round(Ponto * 100 / Max)
+          ),
           trilha(Total, Desc),
           format('\n> ~w (~d pts; ~d%% do topo)\n', [Total, Ponto, Percent]),
           format('  - Descricao: ~w~n', [Desc]),
