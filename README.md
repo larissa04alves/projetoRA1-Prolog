@@ -38,7 +38,7 @@ Sistema em Prolog que entrevista o estudante (perguntas de “sim”/“não”)
 
 ### ▶️ Como executar no Terminal (Ubuntu ou VSCode)
 
-Você pode validar automaticamente perfis com os arquivos de teste:
+Você pode validar automaticamente perfis com os **arquivos de teste**:
 
 ```
 swipl
@@ -48,7 +48,7 @@ swipl
 ?- sistema:testar('testes/teste-perfil-web.pl').
 ```
 
-Ou de forma interativa
+Ou de **forma interativa**
 
 ```
 swipl
@@ -56,12 +56,24 @@ swipl
 ?- sistema:iniciar.
 ```
 
-### Executar de forma online
+### ☁️ Como executar online no SWISH
 
 - Acesse o site do [SWISH](https://swish.swi-prolog.org/).
 - Cole o conteúdo de sistema.pl em um notebook SWISH.
 - Para o modo interativo, chame:
 
+**Simular respostas** no próprio SWISH
+
+```
+?- resposta(1, s). resposta(2, n). resposta(3, s). ...
+```
+
+Utilizar no modo **interativo**
+
 ```
 ?- iniciar.
 ```
+
+## 📜 Observações finais
+
+Este projeto tem fins estritamente acadêmicos e foi desenvolvido para a disciplina informada. Não é destinado a uso comercial. Resultados e recomendações são ilustrativos e dependem das respostas fornecidas pelo usuário.
