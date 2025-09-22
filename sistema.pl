@@ -135,8 +135,8 @@ iniciar :-
     writeln('Responda as seguintes perguntas com sim ou nao.'),
     fazer_perguntas,
     calcular_pontuacoes(Pares),              % [trilha(Pontuacao, Justificativa)...]
-    ordernar_por_pontuacao(Pares, Ordenado),
-    exibir_resultados(Ordenado).
+    ordernar_por_pontuacao(Pares, Ordenada),
+    exibir_resultados(Ordenada).
 
 listar_trilhas :-
     writeln('Trilhas disponiveis:'),
@@ -173,3 +173,96 @@ ler_sn(Res) :-
 normaliza(Str, s) :- member(Str, ["s","sim","y","yes"]).
 normaliza(Str, n) :- member(Str, ["n","nao","não","no"]).
 normaliza(Str, Str).
+
+% -------------------------------------------------------------------------
+% Calculo de pontuacoes e justificativas
+% Aqui calculamos as pontuacoes para cada trilha com base nas respostas
+% -------------------------------------------------------------------------
+
+% retorna lista de pares: [trilha(Nome, Pontuacao, JustificativaOrdenada) ...]
+calcular_pontuacoes(Resultado) :-
+    findall(Nome, trilha(Nome, _), Trilhas),
+    findall(Pontos(member(Nome, Trilhas), pontuacao_trilha(Nome, Pontos)), Resultado).
+
+pontuacao_trilha(Nome, trilha(Nome, Total, JustificativaOrdenada)) :-
+    % contribuições = [ (Caracteristica, Peso, IdPergunta) ... ] only for respostas 's'
+    findall((Caracteristica, Peso, Id),
+        ( perfil(Nome, Caracteristica, Peso),
+          pergunta(Id, _Texto, Caracteristica),
+          resposta(Id, s)
+        ), contribuicoes),
+    soma_pesos(contribuicoes, Total),
+    ordena_contribuicoes(contribuicoes, JustOrd).
+
+soma_pesos(Contribuicoes, Total) :-
+    findall(Peso, member((_Caracteristica, Peso, _Id), Contribuicoes), Pesos),
+    sum_list(Pesos, Total).
+
+
+ordena_contribuicoes(Contribuicoes, Ordenadas) :-
+    sort(2, @>=, Contribuicoes, Ordenadas). % ordena por Peso desc.
+
+% ------------------------------------------
+% Ordenacao e exibicao dos resultados
+% ------------------------------------------
+
+ordenar_por_pontuacao(Pares, Ordenada) :-
+    sort(2, @>=, Pares, Ordenada).  % usa o 2o argumento de trilha/3 (Pontuacao)
+
+exibir_resultados([]) :-
+    writeln('Nenhuma trilha recomendada com base nas suas respostas.').
+  exibir_resultados(Pares) :-
+  writeln('\n=== Ranking de Compatibilidade ===')
+  % pega maior pontuacao para calcular porcentagem
+  Pares = [trilha(_TotalMax, Max, _)|_],
+    forall(member(trilha(Total, Ponto, Justificativa), Pares),
+        ( Percent is (Max =:= 0 -> 0 ; round(Ponto * 100 / Max)),
+          trilha(Total, Desc),
+          format('\n> ~w (~d pts; ~d%% do topo)\n', [Total, Ponto, Percent]),
+          format('  - Descricao: ~w~n', [Desc]),
+          ( Justificativa = [] ->
+                writeln('  - Nenhuma resposta contribuiu (todas n ou nao relacionadas).')
+            ;
+                writeln('  - Principais contribuicoes:'),
+                mostrar_justificativas(Justificativa)
+          )
+        )),
+    exibir_ranking(Pares).
+
+
+mostrar_justificativas([]).
+mostrar_justificativas([(Caracteristica, Peso, Id)|Resposta]) :-
+    caracteristica(Caracteristica, Label),
+    format('    • [Q~d] ~w  (+~d)~n', [Id, Label, Peso]),
+    mostrar_justificativas(Resposta).
+
+
+exibir_ranking(Pares) :-
+    Pares = [trilha(_TotalMax, Max, _)|_],
+    findall(Total, member(trilha(Total, Max, _), Pares), Tops),
+    ( Tops = [Unico] ->
+        format('\nRecomendacao principal: ~w~n', [Unico])
+      ; format('\nEmpate no topo entre: ~w~n', [Tops])
+    ).
+
+
+% -----------------------------------------
+% Modo teste
+% Carrega resposta de um arquivo
+% -----------------------------------------
+
+% Arquivo de teste deve definir fatos: resposta(Id, s|n).
+% Ex: testar('tests/teste_perfil_ia.pl').
+
+testar(Arquivo) :-
+    limpar_respostas,
+    consult(Arquivo),
+    banner,
+    writeln('Executando em modo de teste (sem entrada manual)...'),
+    calcular_pontuacoes(Pares),
+    ordenar_por_pontuacao(Pares, Ordenada),
+    exibir_resultados(Ordenada).
+
+
+limpar_respostas :-
+    retractall(resposta(_,_)).
