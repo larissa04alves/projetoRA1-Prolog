@@ -2,6 +2,7 @@
 % Sistema de recomendação de trilhas em tecnologia
 % =========================
 
+% Aqui nos declaramos o modeulo chamado sistema e o qu ele exporta
 :- module(sistema, [
   iniciar/0,
   testar/1,
@@ -9,6 +10,7 @@
   listar_trilhas/0
 ]).
 
+% é a resposta que vai ter 2 argumentos: id da pergunta e resposta sim e não
 :- dynamic resposta/2.
 
 % ----------------------------------
@@ -129,6 +131,7 @@ pergunta(19, 'Voce tem interesse em hardware e infraestrutura fisica?', hardware
 % Fluxo principal e questionario
 % Aqui definimos o fluxo principal do sistema
 % -----------------------------------------
+% Nessa parte apenas chamamos as funcoes que vão rodar ao iniciar
 iniciar :-
     limpar_respostas,
     banner,
@@ -138,38 +141,47 @@ iniciar :-
     ordenar_por_pontuacao(Pares, Ordenada),
     exibir_resultados(Ordenada).
 
+% Lista todas as trilhas disponiveis e formata a exibicao
 listar_trilhas :-
     writeln('Trilhas disponiveis:'),
     forall(trilha(Nome, Descricao),
            (format('- ~w: ~w~n', [Nome, Descricao]))).
 
+% Imprime um cabeçalho bonito
 banner :-
     writeln('=============================================='),
     writeln('  Sistema de Recomendacao de Trilhas em Tech  '),
     writeln('==============================================').
 
+% Aqui o pergunta pega o Fato e o perguntar executa ação
 fazer_perguntas :-
     forall(pergunta(Id, Texto, _Caracteristica),
            perguntar(Id, Texto, Resposta)),
-    (var(Resposta) -> true ; true). % evita warning; fluxo eh do forall
+    (var(Resposta) -> true; true). %Tem esse segundo true para evitar warning, pois só vamos consumir o Resposta
 
+% Primeiro formata para não quebrar a linha, depois le o que o usuario respondeu, grava a resposta com um append e retorna a resposta final
 perguntar(Id, Texto, RespostaFinal) :-
     format('(~d) ~w (s/n): ', [Id, Texto]),
     ler_resposta(Resposta),
     assertz(resposta(Id, Resposta)),
     RespostaFinal = Resposta.
 
+% Le uma linha, normaliza ela para minuscula, mapeia as respostas de s e n, verifica se realmente tem só s e n,
 ler_resposta(Resposta) :-
-    read_line_to_string(user_input, (In)),
+    read_line_to_string(user_input, In),
     string_lower(In, Lower),
     normaliza(Lower, RespostaNorm),
     ( RespostaNorm = s ; RespostaNorm = n ),
-    !,
+    !, % Corta para evitar que tente outra regra
+    % unifica a resposta final
     Resposta = RespostaNorm.
+
+%é usada para tratar entradas inválidas, pedindo novamente a resposta
 ler_resposta(Resposta) :-
     writeln('Entrada invalida. Digite "s" ou "n".'),
     ler_resposta(Resposta).
 
+% Normaliza varias formas de dizer sim,yes e nao,no para s e n
 normaliza(Str, s) :- member(Str, ["s","sim","y","yes"]).
 normaliza(Str, n) :- member(Str, ["n","nao","não","no"]).
 normaliza(Str, Str).
@@ -179,32 +191,35 @@ normaliza(Str, Str).
 % Aqui calculamos as pontuacoes para cada trilha com base nas respostas
 % -------------------------------------------------------------------------
 
-% retorna lista de pares: [trilha(Nome, Pontuacao, JustificativaOrdenada) ...]
+% constroi o resultado com a trilha, nome, total e justificativa ordenada
 calcular_pontuacoes(Resultado) :-
-    findall(Nome, trilha(Nome, _), Trilhas),
+    findall(Nome, trilha(Nome, _), Trilhas), % Coleta só os nomes das trilhas
     findall(trilha(Nome, Total, JustificativaOrdenada),
         ( member(Nome, Trilhas),
           pontuacao_trilha(Nome, trilha(Nome, Total, JustificativaOrdenada))
         ),
-        Resultado).
+        Resultado). % Para cada nome calcula a pontucao e produz o resultado final
 
+% Monta uma lista de 3-tuplas (Caracteristica, Peso, IdPergunta) somente para respostas 's'
 pontuacao_trilha(Nome, trilha(Nome, Total, JustificativaOrdenada)) :-
-    % Contribuicoes = [ (Caracteristica, Peso, IdPergunta) ... ] somente para 's'
+    % Contribuicoes = [ (Caracteristica, Peso, IdPergunta) ... ]
     findall((Caracteristica, Peso, Id),
-        ( perfil(Nome, Caracteristica, Peso),
-          pergunta(Id, _Texto, Caracteristica),
-          resposta(Id, s)
+        ( perfil(Nome, Caracteristica, Peso), %busca a caracteristica e peso para a trilha
+          pergunta(Id, _Texto, Caracteristica), % Acha qual pergunta tem essa caracteristica
+          resposta(Id, s) % Verifica se a resposta foi sim
         ),
         Contribuicoes),
-    soma_pesos(Contribuicoes, Total),
-    ordena_contribuicoes(Contribuicoes, JustificativaOrdenada).
+    soma_pesos(Contribuicoes, Total), % Soma os pesos para obter a pontuacao total
+    ordena_contribuicoes(Contribuicoes, JustificativaOrdenada). % Ordena as contribuicoes por peso decrescente
 
 soma_pesos(Contribuicoes, Total) :-
     findall(Peso, member((_Caracteristica, Peso, _Id), Contribuicoes), Pesos),
-    sum_list(Pesos, Total).
+    sum_list(Pesos, Total). % Soma a lista de pesos e unifica com Total
 
 ordena_contribuicoes(Contribuicoes, Ordenadas) :-
     sort(2, @>=, Contribuicoes, Ordenadas). % por Peso desc.
+% ordena pela segunda posicao da tupla (Peso) em ordem decrescente
+
 % ------------------------------------------
 % Ordenacao e exibicao dos resultados
 % ------------------------------------------
@@ -214,17 +229,21 @@ ordenar_por_pontuacao(Pares, Ordenada) :-
 
 exibir_resultados([]) :-
     writeln('Nenhuma trilha recomendada com base nas suas respostas.').
+
+
   exibir_resultados(Pares) :-
   writeln('\n=== Ranking de Compatibilidade ==='),
-  % pega maior pontuacao para calcular porcentagem
+  % Assume que já ta ordenado, pega a pontuação do primeiro como max
   Pares = [trilha(_TotalMax, Max, _)|_],
     forall(member(trilha(Total, Ponto, Justificativa), Pares),
-        ( ( Max =:= 0 -> Percent = 0
-          ; Percent is round(Ponto * 100 / Max)
+        ( ( Max =:= 0 -> Percent = 0 % Evita divisao por zero
+          ; Percent is round(Ponto * 100 / Max) % Calcula percentual do topo
           ),
-          trilha(Total, Desc),
-          format('\n> ~w (~d pts; ~d%% do topo)\n', [Total, Ponto, Percent]),
-          format('  - Descricao: ~w~n', [Desc]),
+          NomeTrilha = Total,
+          trilha(NomeTrilha, Descricao), % Pega a descricao da trilha
+          % Formata a exibição para não mostar a variavel
+          format('\n> ~w (~d pts; ~d% do topo)\n', [NomeTrilha, Ponto, Percent]),
+          format('  - Descricao: ~w~n', [Descricao]),
           ( Justificativa = [] ->
                 writeln('  - Nenhuma resposta contribuiu (todas n ou nao relacionadas).')
             ;
@@ -234,16 +253,21 @@ exibir_resultados([]) :-
         )),
     exibir_ranking(Pares).
 
-
+% Vazio caso nao tenha contribuicoes
 mostrar_justificativas([]).
+
+% Se nao vazio pega a carac, peso e id e passa para a label (mais amigavel)
 mostrar_justificativas([(Caracteristica, Peso, Id)|Resposta]) :-
     caracteristica(Caracteristica, Label),
+    % Formata colocando bullet, id da pergunta, label e peso
     format('    • [Q~d] ~w  (+~d)~n', [Id, Label, Peso]),
-    mostrar_justificativas(Resposta).
+    mostrar_justificativas(Resposta). % Chama recursivamente para o resto da lista
 
 
+% Pega o Max e coloca no top
 exibir_ranking(Pares) :-
     Pares = [trilha(_TotalMax, Max, _)|_],
+    %Verifica se tem empate no topo se unico coloca primeira opcao senao segunda
     findall(Total, member(trilha(Total, Max, _), Pares), Tops),
     ( Tops = [Unico] ->
         format('\nRecomendacao principal: ~w~n', [Unico])
@@ -256,8 +280,8 @@ exibir_ranking(Pares) :-
 % Carrega resposta de um arquivo
 % -----------------------------------------
 
-% Arquivo de teste deve definir fatos: resposta(Id, s|n).
-% Ex: testar('tests/teste_perfil_ia.pl').
+% Arquivo de teste deve definir fatos: resposta(Id, sim e não ).
+% Ex: testar('testes/teste-perfil-ia.pl').
 
 testar(Arquivo) :-
     limpar_respostas,
@@ -270,4 +294,4 @@ testar(Arquivo) :-
 
 
 limpar_respostas :-
-    retractall(resposta(_,_)).
+    retractall(resposta(_,_)). % Remove todas as respostas anteriores
