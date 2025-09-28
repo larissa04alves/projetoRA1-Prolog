@@ -1,9 +1,9 @@
 % Perfil: Forte em IA
-resposta(1, s).   % matematica_estatistica
-resposta(2, s).   % programacao
-resposta(3, s).   % logica
-resposta(4, s).   % machine_learning
-resposta(5, s).   % pln
+resposta(1, s).
+resposta(2, s).
+resposta(3, s).
+resposta(4, s).
+resposta(5, s).
 resposta(6, n).
 resposta(7, n).
 resposta(8, n).
