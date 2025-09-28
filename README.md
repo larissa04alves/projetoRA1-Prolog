@@ -27,6 +27,7 @@ Sistema em Prolog que entrevista o estudante (perguntas de “sim”/“não”)
 │  ├─ teste-perfil-ia.pl     # Perfil exemplo: inclinação para IA
 │  ├─ teste-perfil-dados.pl  # Perfil exemplo: inclinação para Dados
 │  └─ teste-perfil-redeSec.pl    # Perfil exemplo: inclinação para redes e segurança
+│  └─ teste-perfil-web.pl    # Perfil exemplo: inclinação para desenvolvimento web
 └─ README.md
 ```
 
