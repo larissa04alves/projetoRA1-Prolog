@@ -1,4 +1,4 @@
-% Perfil: Forte em IA
+% Perfil: Inteligencia Artificial
 resposta(1, s).
 resposta(2, s).
 resposta(3, s).

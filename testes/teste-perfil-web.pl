@@ -1,0 +1,20 @@
+% Perfil: Desenvolvimento Web
+resposta(1, n).
+resposta(2, s).
+resposta(3, s).
+resposta(4, n).
+resposta(5, n).
+resposta(6, n).
+resposta(7, s).
+resposta(8, s).
+resposta(9, s).
+resposta(10, s).
+resposta(11, s).
+resposta(12, n).
+resposta(13, n).
+resposta(14, n).
+resposta(15, n).
+resposta(16, n).
+resposta(17, n).
+resposta(18, n).
+resposta(19, n).
