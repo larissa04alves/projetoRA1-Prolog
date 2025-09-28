@@ -210,7 +210,7 @@ exibir_resultados(Pares) :-
           ; Percent is round(Pontuacao * 100 / Max)
           ),
           trilha(TrilhaNome, Desc),
-          format('\n> ~w (~d pts; ~d%% do topo)\n', [TrilhaNome, Pontuacao, Percent]),
+          format('\n> ~w (~d pts; ~d% do topo)\n', [TrilhaNome, Pontuacao, Percent]),
           format('  - Descricao: ~w~n', [Desc]),
           ( Justificativa = [] ->
                 writeln('  - Nenhuma resposta contribuiu.')
